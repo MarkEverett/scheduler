@@ -4,7 +4,7 @@ import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import final, ClassVar, Dict, List, Optional
+from typing import final, ClassVar, Dict, List, Optional, Any
 from zoneinfo import ZoneInfo
 
 from lucupy.minimodel import TimeslotIndex, NightIndex, Site
@@ -36,6 +36,7 @@ class NightlyTimeline:
     A collection of timeline entries per night and site.
     """
     timeline: Dict[NightIndex, Dict[Site, List[TimelineEntry]]] = field(init=False, default_factory=dict)
+    final_plans: Dict[NightIndex, Dict[Site, Dict[str, Any]]] = field(init=False, default_factory=dict)
     time_losses: Dict[NightIndex, Dict[Site, Dict[str, int]]] = field(init=False, default_factory=dict)
     _datetime_formatter: ClassVar[str] = field(init=False, default='%Y-%m-%d %H:%M')
 

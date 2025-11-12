@@ -64,6 +64,8 @@ class EventCycle:
         # Run time accounting
         self.scp.collector.time_accounting(
             plans=plans,
+            nightly_timeline=nightly_timeline,
+            night_idx=night_idx,
             sites=frozenset({site}),
             end_timeslot_bounds=end_timeslot_bounds
         )

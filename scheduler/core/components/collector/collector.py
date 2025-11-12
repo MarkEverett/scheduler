@@ -25,6 +25,7 @@ from scheduler.core.components.nighteventsmanager import NightEventsManager
 from scheduler.core.plans import Plans, Visit
 from scheduler.core.programprovider.abstract import ProgramProvider
 from scheduler.core.sources.sources import Sources
+from scheduler.core.events.queue import NightlyTimeline
 from scheduler.services import logger_factory
 from scheduler.services.redis_client import RedisClient
 from scheduler.services.resource import NightConfiguration
@@ -416,6 +417,8 @@ class Collector(SchedulerComponent):
 
     def time_accounting(self,
                         plans: Plans,
+                        nightly_timeline: NightlyTimeline,
+                        night_idx: NightIndex,
                         sites: FrozenSet[Site] = ALL_SITES,
                         end_timeslot_bounds: Optional[Dict[Site, Optional[TimeslotIndex]]] = None) -> None:
         """
@@ -436,6 +439,15 @@ class Collector(SchedulerComponent):
             if plan.site not in sites:
                 continue
 
+            if night_idx not in nightly_timeline.final_plans:
+                nightly_timeline.final_plans[night_idx] = {}
+            if plan.site not in nightly_timeline.final_plans[night_idx]:
+                nightly_timeline.final_plans[night_idx][plan.site] = {
+                    'visits':[], 'assoc_partial_plans':[]}
+
+            final_plan_visits = nightly_timeline.final_plans[night_idx][plan.site]['visits']
+            final_plan_assoc_partial_plans = nightly_timeline.final_plans[night_idx][plan.site]['assoc_partial_plans']
+            
             # Determine the end timeslot for the site if one is specified.
             # We set to None is the whole night is to be done.
             end_timeslot_bound = end_timeslot_bounds.get(plan.site) if end_timeslot_bounds is not None else None
@@ -530,6 +542,17 @@ class Collector(SchedulerComponent):
                                           observation.obs_class == ObservationClass.PROGCAL):
                                         obs_seq[atom_idx].program_used += observation.acq_overhead
 
+                                if not obs_seq[atom_idx].observed:
+
+                                    if (len(final_plan_visits) == 0 or visit.start_time_slot != final_plan_visits[-1].start_time_slot):
+                                        final_plan_visits.append(visit)
+                                        final_plan_assoc_partial_plans.append({})
+
+                                    final_plan_visits[-1].atom_end_idx = atom_idx
+                                    final_plan_visits[-1].time_slots = slot_length_visit
+                                    final_plan_visits[-1].completion = f'{str(atom_idx+1)}/{len(obs_seq)}'
+                                    final_plan_assoc_partial_plans[-1] = {'conditions': plan.conditions}
+                                        
                                 obs_seq[atom_idx].observed = True
                                 obs_seq[atom_idx].qa_state = QAState.PASS
 
