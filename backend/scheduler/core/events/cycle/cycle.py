@@ -339,7 +339,7 @@ class EventCycle:
         # Set the initial variant for the site for the night. This may have been set above by weather
         # information obtained before or at the start of the night, and if not, then the lookup will give None,
         # which will reset to the default values as defined in the Selector.
-        morn_twi_time = events_by_night.events[0].time
+        morn_twi_time = events_by_night.events[-1].time
         initial_variant = self.scp.collector.sources.origin.env.get_initial_conditions(
             site,
             morn_twi_time.date()
